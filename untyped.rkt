@@ -64,7 +64,6 @@
       (error "Index out of bounds")
       (match (untyped-list-data-ndatabits lst)
         (0 0)
-        (1 (error "TODO"))
         (n
          (let*
              ([seg (untyped-list-segment lst)]
