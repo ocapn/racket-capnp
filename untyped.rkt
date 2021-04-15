@@ -33,6 +33,8 @@
 
 (: as-untyped-list-composite (-> untyped-list untyped-list-composite))
 (define (as-untyped-list-composite lst)
+  ;; Promote a list of data values or pointers to a list of structs.
+  ;; Throws an error if the argument is a list of 1-bit values.
   (cond
     ((untyped-list-composite? lst) lst)
     ((untyped-list-ptrs? lst)
@@ -62,6 +64,7 @@
 
 (: index-data (-> untyped-list-data Integer Integer))
 (define (index-data lst i)
+  ;; Get the `i`th element of `lst`
   (define len (untyped-list-length lst))
   (if (or (< i 0) (>= i len))
       (error "Index out of bounds")
@@ -83,6 +86,9 @@
 
 (: follow-ptr (-> segment message Integer Ptr untyped-ptr))
 (define (follow-ptr seg msg offset ptr)
+  ;; Given a pointer located at `offset` in `seg` (in `msg`),
+  ;; with numeric value `ptr`, follow the pointer and return
+  ;; its referent.
   (define kind (ptr-kind ptr))
   (cond
     ((equal? kind ptr-kind-struct)
