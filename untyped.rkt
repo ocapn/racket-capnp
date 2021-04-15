@@ -90,6 +90,34 @@
   ;; with numeric value `ptr`, follow the pointer and return
   ;; its referent.
   (define kind (ptr-kind ptr))
+  (if (not (equal? kind ptr-kind-far))
+      (follow-near-ptr seg msg offset ptr)
+      (let*
+         ([land-seg-index (far-segment ptr)]
+          [land-seg (message-get-segment msg land-seg-index)]
+          [land-offset (far-offset ptr)]
+          [land-word-1 (segment-word-ref land-seg land-offset)]
+          [two-words? (far-landing-pad-two-words? ptr)])
+       (if (not two-words?)
+           (follow-near-ptr land-seg
+                       msg
+                       land-offset
+                       land-word-1)
+           (let*
+               ([land-word-2 (segment-word-ref land-seg (+ 1 land-offset))]
+                [double-far-seg-index (far-segment land-word-1)]
+                [double-far-seg (message-get-segment msg double-far-seg-index)]
+                [double-far-offset (far-offset land-word-1)])
+             (follow-near-ptr double-far-seg
+                         msg
+                         double-far-offset
+                         land-word-2))))))
+
+(: follow-near-ptr (-> segment message Integer Ptr untyped-ptr))
+(define (follow-near-ptr seg msg offset ptr)
+  ;; Like follow-ptr, but throws an error for far-pointers, which
+  ;; avoids infinite loops.
+  (define kind (ptr-kind ptr))
   (cond
     ((equal? kind ptr-kind-struct)
      (untyped-struct
@@ -116,25 +144,6 @@
          (else
           (error "impossible")))))
     ((equal? kind ptr-kind-far)
-     (let*
-         ([land-seg-index (far-segment ptr)]
-          [land-seg (message-get-segment msg land-seg-index)]
-          [land-offset (far-offset ptr)]
-          [land-word-1 (segment-word-ref land-seg land-offset)]
-          [two-words? (far-landing-pad-two-words? ptr)])
-       (if (not two-words?)
-           (follow-ptr land-seg
-                       msg
-                       land-offset
-                       land-word-1)
-           (let*
-               ([land-word-2 (segment-word-ref land-seg (+ 1 land-offset))]
-                [double-far-seg-index (far-segment land-word-1)]
-                [double-far-seg (message-get-segment msg double-far-seg-index)]
-                [double-far-offset (far-offset land-word-1)])
-             (follow-ptr double-far-seg
-                         msg
-                         double-far-offset
-                         land-word-2)))))
+     (error "Illegally chained far pointers"))
     (else
      (error "impossible"))))
