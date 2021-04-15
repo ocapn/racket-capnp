@@ -2,19 +2,22 @@
 
 (require "units.rkt")
 (require "message.rkt")
+(require "pointer.rkt")
 
-(struct untyped-struct
+(struct untyped-ptr ())
+
+(struct untyped-struct untyped-ptr
   ([segment : segment]
    [offset : Integer]
    [ndata-bytes : Integer]
    [nptrs : Integer]
    [message : message]))
 
-(struct untyped-capability
+(struct untyped-capability untyped-ptr
   ([index : Integer]
    [message : message]))
 
-(struct untyped-list
+(struct untyped-list untyped-ptr
   ([segment : segment]
    [offset : Integer]
    [length : Integer]))
@@ -76,4 +79,37 @@
            (bitwise-and
             (arithmetic-shift word (- shift))
             (- (arithmetic-shift 1 n) 1)))))))
-        
+
+
+(: follow-ptr (-> segment message Integer Ptr untyped-ptr))
+(define (follow-ptr seg msg offset ptr)
+  (define kind (ptr-kind ptr))
+  (cond
+    ((equal? kind ptr-kind-struct)
+     (untyped-struct
+      seg
+      (+ offset (struct-offset ptr))
+      (nwords->nbytes (struct-nwords ptr))
+      (struct-nptrs ptr)
+      msg))
+    ((equal? kind ptr-kind-cap)
+     (untyped-capability (cap-index ptr) msg))
+    ((equal? kind ptr-kind-list)
+     (let*
+         ([c (list-c ptr)]
+          [nbits (list-c->nbits (list-c ptr))]
+          [new-offset (+ offset (list-offset ptr))]
+          [size (list-size ptr)])
+       (cond
+         (nbits
+          (untyped-list-data seg new-offset size nbits))
+         ((equal? c list-c-ptr)
+          (untyped-list-ptrs seg new-offset size))
+         ((equal? c list-c-composite)
+          (error "TODO"))
+         (else
+          (error "impossible")))))
+    ((equal? kind ptr-kind-far)
+     (error "TODO"))
+    (else
+     (error "impossible"))))
