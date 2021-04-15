@@ -10,6 +10,7 @@
          segment-remaining-capacity
          segment-allocate!
          segment-word-ref
+         message-get-segment
          message-allocate!)
          
 
@@ -76,6 +77,10 @@
     (if offset
         (word-ptr segment offset)
         (message-allocate-in-new-segment! msg amount))))
+
+(: message-get-segment (-> message Integer segment))
+(define (message-get-segment msg i)
+  (vector-ref (message-segments msg) i))
 
 (: message-last-segment (-> message segment))
 (define (message-last-segment msg)

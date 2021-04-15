@@ -116,6 +116,25 @@
          (else
           (error "impossible")))))
     ((equal? kind ptr-kind-far)
-     (error "TODO"))
+     (let*
+         ([land-seg-index (far-segment ptr)]
+          [land-seg (message-get-segment msg land-seg-index)]
+          [land-offset (far-offset ptr)]
+          [land-word-1 (segment-word-ref land-seg land-offset)]
+          [two-words? (far-landing-pad-two-words? ptr)])
+       (if (not two-words?)
+           (follow-ptr land-seg
+                       msg
+                       land-offset
+                       land-word-1)
+           (let*
+               ([land-word-2 (segment-word-ref land-seg (+ 1 land-offset))]
+                [double-far-seg-index (far-segment land-word-1)]
+                [double-far-seg (message-get-segment msg double-far-seg-index)]
+                [double-far-offset (far-offset land-word-1)])
+             (follow-ptr double-far-seg
+                         msg
+                         double-far-offset
+                         land-word-2)))))
     (else
      (error "impossible"))))
