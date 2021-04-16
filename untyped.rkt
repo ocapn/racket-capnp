@@ -16,18 +16,17 @@
 (require "message.rkt")
 (require "pointer.rkt")
 
-(struct untyped-ptr ())
+(struct untyped-ptr
+  ([message : message]))
 
 (struct untyped-struct untyped-ptr
   ([segment : segment]
    [offset : Integer]
    [ndata-bytes : Integer]
-   [nptrs : Integer]
-   [message : message]))
+   [nptrs : Integer]))
 
 (struct untyped-capability untyped-ptr
-  ([index : Integer]
-   [message : message]))
+  ([index : Integer]))
 
 (struct untyped-list untyped-ptr
   ([segment : segment]
@@ -51,6 +50,7 @@
     ((untyped-list-composite? lst) lst)
     ((untyped-list-ptrs? lst)
        (untyped-list-composite
+        (untyped-ptr-message lst)
         (untyped-list-segment lst)
         (untyped-list-offset lst)
         (untyped-list-length lst)
@@ -61,6 +61,7 @@
        (if (equal? elt-bits 1)
          (error "Can't convert list of bits to composite list")
          (untyped-list-composite
+          (untyped-ptr-message lst)
           (untyped-list-segment lst)
           (untyped-list-offset lst)
           (untyped-list-length lst)
@@ -145,13 +146,13 @@
   (cond
     ((equal? kind ptr-kind-struct)
      (untyped-struct
+      msg
       seg
       (+ offset (struct-offset ptr))
       (nwords->nbytes (struct-nwords ptr))
-      (struct-nptrs ptr)
-      msg))
+      (struct-nptrs ptr)))
     ((equal? kind ptr-kind-cap)
-     (untyped-capability (cap-index ptr) msg))
+     (untyped-capability msg (cap-index ptr)))
     ((equal? kind ptr-kind-list)
      (let*
          ([c (list-c ptr)]
@@ -160,9 +161,9 @@
           [size (list-size ptr)])
        (cond
          (nbits
-          (untyped-list-data seg new-offset size nbits))
+          (untyped-list-data msg seg new-offset size nbits))
          ((equal? c list-c-ptr)
-          (untyped-list-ptrs seg new-offset size))
+          (untyped-list-ptrs msg seg new-offset size))
          ((equal? c list-c-composite)
           (error "TODO"))
          (else
