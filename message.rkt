@@ -17,7 +17,6 @@
 (require "units.rkt")
 (require "word-vector.rkt")
 
-
 ;;;; Segments
 
 (struct segment
@@ -62,8 +61,8 @@
 ;;;; Messages
 
 (struct message
-  ([segments : (Vector segment)]
-   [capabilities : (Vector capability)])
+  ([segments : (Mutable-Vectorof segment)]
+   [capabilities : (Mutable-Vectorof capability)])
   #:mutable)
 
 (struct word-ptr
@@ -104,3 +103,55 @@
 (define (message-append-new-segment! msg size)
   (define length-in-bytes (nwords->nbytes size))
   (segment (make-shared-bytes length-in-bytes) length-in-bytes))
+
+
+;;;; io
+
+(: read-bytes-exact (-> Integer Bytes))
+(define (read-bytes-exact n)
+  ;; like (read-bytes n), but throws an exception on short reads.
+  (define bytes (read-bytes n))
+  (cond
+    ((and (bytes? bytes) (= (bytes-length bytes) 4))
+     bytes)
+    (else (error "Unexpected EOF"))))
+
+(define (read-u32)
+  (parse-u32 (read-bytes-exact 4)))
+
+(: parse-u32 (-> Bytes Integer))
+(define (parse-u32 bytes)
+  (: get-part (-> Integer Integer))
+  (define (get-part n)
+    (arithmetic-shift
+     (bytes-ref bytes n)
+     (nbytes->nbits n)))
+  (bitwise-ior
+   (get-part 0)
+   (get-part 1)
+   (get-part 2)
+   (get-part 3)))
+
+(: read-message (-> message))
+(define (read-message)
+  ;; reads a message from (current-input-port). TODO: provide a way to limit
+  ;; the size of the message.
+  (define segment-count (+ 1 (read-u32)))
+  (define segment-table-bytes (read-bytes-exact (* 4 segment-count)))
+  (when (= (modulo segment-count 2) 0)
+    ; padding
+    (read-bytes 4))
+  (: parse-segment-length (-> Integer Integer))
+  (define (parse-segment-length i)
+    (parse-u32 (subbytes segment-table-bytes (* 4 i) (* 4 (+ 1 i)))))
+  (define segment-lengths
+    (build-vector segment-count parse-segment-length))
+  (: read-segment (-> Integer segment))
+  (define (read-segment nwords)
+    (define nbytes (nwords->nbytes nwords))
+    (segment
+     (read-bytes-exact nbytes)
+     nbytes))
+  (define segments
+    (vector-map read-segment segment-lengths))
+  (message segments (make-vector 0 (capability))))
