@@ -19,19 +19,19 @@
 (struct untyped-ptr
   ([message : message]))
 
-(struct untyped-struct untyped-ptr
+(struct untyped-ptr-data untyped-ptr
   ([segment : segment]
-   [offset : Integer]
-   [ndata-bytes : Integer]
+   [offset : Integer]))
+
+(struct untyped-struct untyped-ptr-data
+  ([ndata-bytes : Integer]
    [nptrs : Integer]))
 
 (struct untyped-capability untyped-ptr
   ([index : Integer]))
 
-(struct untyped-list untyped-ptr
-  ([segment : segment]
-   [offset : Integer]
-   [length : Integer]))
+(struct untyped-list untyped-ptr-data
+  ([length : Integer]))
 
 (struct untyped-list-data untyped-list
   ([ndatabits : Integer]))
@@ -51,8 +51,8 @@
     ((untyped-list-ptrs? lst)
        (untyped-list-composite
         (untyped-ptr-message lst)
-        (untyped-list-segment lst)
-        (untyped-list-offset lst)
+        (untyped-ptr-data-segment lst)
+        (untyped-ptr-data-offset lst)
         (untyped-list-length lst)
         0
         1))
@@ -62,8 +62,8 @@
          (error "Can't convert list of bits to composite list")
          (untyped-list-composite
           (untyped-ptr-message lst)
-          (untyped-list-segment lst)
-          (untyped-list-offset lst)
+          (untyped-ptr-data-segment lst)
+          (untyped-ptr-data-offset lst)
           (untyped-list-length lst)
           (nbits->nbytes-floor elt-bits)
           0))))
@@ -85,10 +85,10 @@
         (0 0)
         (n
          (let*
-             ([seg (untyped-list-segment lst)]
+             ([seg (untyped-ptr-data-segment lst)]
               [elts-per-word (floor (/ 64 n))]
               [word-idx
-               (+ (untyped-list-offset lst)
+               (+ (untyped-ptr-data-offset lst)
                   (floor (/ i elts-per-word)))]
               [shift (* n (remainder i elts-per-word))]
               [word (segment-word-ref seg word-idx)])
@@ -104,8 +104,8 @@
     ((< i 0) (error "Out of bounds: i < 0"))
     (else
      (segment-offset-byte-ref
-      (untyped-struct-segment st)
-      (untyped-struct-offset st)
+      (untyped-ptr-data-segment st)
+      (untyped-ptr-data-offset st)
       i))))
 
 
