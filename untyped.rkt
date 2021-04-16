@@ -1,5 +1,16 @@
 #lang typed/racket
 
+(provide (struct-out untyped-ptr)
+         (struct-out untyped-struct)
+         (struct-out untyped-capability)
+         (struct-out untyped-list)
+         (struct-out untyped-list-data)
+         (struct-out untyped-list-ptrs)
+         (struct-out untyped-list-composite)
+
+         as-untyped-list-composite
+         index-data)
+
 (require "units.rkt")
 (require "message.rkt")
 (require "pointer.rkt")
