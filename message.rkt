@@ -10,6 +10,7 @@
          segment-remaining-capacity
          segment-allocate!
          segment-word-ref
+         segment-offset-byte-ref
          message-get-segment
          message-allocate!)
          
@@ -51,6 +52,13 @@
 (: segment-word-ref (-> segment Integer Integer))
 (define (segment-word-ref seg k)
   (word-vector-ref (segment-bytes seg) k))
+
+(: segment-offset-byte-ref (-> segment Integer Integer Integer))
+(define (segment-offset-byte-ref seg word-offset byte-offset)
+  ;; Get the byte `byte-offset` bytes after the `word-offset`th 64-bit
+  ;; word. Useful when doing byte indexing into a larger structure.
+  (bytes-ref (segment-bytes seg)
+             (+ (nwords->nbytes word-offset) byte-offset)))
   
 
 ;;; caps

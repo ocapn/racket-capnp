@@ -8,6 +8,7 @@
          (struct-out untyped-list-ptrs)
          (struct-out untyped-list-composite)
 
+         get-struct-byte
          as-untyped-list-composite
          index-data)
 
@@ -93,6 +94,18 @@
            (bitwise-and
             (arithmetic-shift word (- shift))
             (- (arithmetic-shift 1 n) 1)))))))
+
+
+(: get-struct-byte (-> untyped-struct Integer Integer))
+(define (get-struct-byte st i)
+  (cond
+    ((>= i (untyped-struct-ndata-bytes st)) 0)
+    ((< i 0) (error "Out of bounds: i < 0"))
+    (else
+     (segment-offset-byte-ref
+      (untyped-struct-segment st)
+      (untyped-struct-offset st)
+      i))))
 
 
 (: follow-ptr (-> segment message Integer Ptr untyped-ptr))
