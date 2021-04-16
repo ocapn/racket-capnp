@@ -9,6 +9,7 @@
          (struct-out untyped-list-composite)
 
          get-struct-byte
+         get-struct-ptr
          as-untyped-list-composite
          index-data)
 
@@ -108,6 +109,22 @@
       (untyped-ptr-data-offset st)
       i))))
 
+(: get-struct-ptr (-> untyped-struct Integer (U #f untyped-ptr)))
+(define (get-struct-ptr st i)
+  ;; Follow the ith pointer in a struct.
+  (cond
+    ((>= i (untyped-struct-nptrs st)) #f)
+    ((< i 0) (error "out of bounds: i < 0"))
+    (else
+     (let*
+         ([seg (untyped-ptr-data-segment st)]
+          [ptr-offset (+ (untyped-ptr-data-offset st)
+                         (nbytes->nwords-floor (untyped-struct-ndata-bytes st))
+                         i)]
+          [ptr-value (segment-word-ref seg ptr-offset)])
+       (if (ptr-null? ptr-value)
+           #f
+           (follow-ptr seg (untyped-ptr-message st) ptr-offset ptr-value))))))
 
 (: follow-ptr (-> segment message Integer Ptr untyped-ptr))
 (define (follow-ptr seg msg offset ptr)
